@@ -65,3 +65,6 @@ package-lock.json
 *v8.log
 /lib/
 .env
+/_unity_colyseus/
+/build/
+/src/client/nested

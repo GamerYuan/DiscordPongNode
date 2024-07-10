@@ -14,10 +14,10 @@ export class Player extends Schema {
 
     @type("string")
     userId: string = "";
-}
 
-// Matchmaking doesn't require state
-export class MatchmakingState extends Schema {}
+    @type("number")
+    y: number = 0.0;
+}
 
 // Example game state
 export class GameState extends Schema {
