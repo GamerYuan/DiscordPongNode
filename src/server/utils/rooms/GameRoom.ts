@@ -4,7 +4,7 @@
  */
 
 import { Room } from "colyseus";
-import { GameState, Player } from "../structures";
+import { GameState, Participant, Player } from "../structures";
 
 import type { Client } from "colyseus";
 import type { ExpectedCreateOptions, ExpectedJoinOptions } from "../types";
@@ -26,34 +26,34 @@ export class GameRoom extends Room {
   override onCreate(options: ExpectedCreateOptions): void | Promise<any> {
     //? Check validity
     if (typeof options.instanceId != "string") return this.disconnect();
-    console.log(`Room with room id ${this.roomId} created`);
-
     roomsMap.set(options.instanceId, true);
 
+    this.roomId = options.instanceId;
     // Increasing the reservation time to increase flexibility with the client
     this.setSeatReservationTime(20);
 
     //\ Set id and state
-    this.roomId = options.instanceId;
+    console.log(`Room with room id ${this.roomId} created`);
+
     this.setState(new GameState());
 
     // You can set up your listeners here
     this.onMessage(
       "playerPosition",
       (client, position: PlayerPositionMessage) => {
-        const player = this.state.players.get(client.sessionId);
+        const player = this.state.participants.get(client.sessionId);
         player.y = position;
-        console.log({ position });
+        console.log(client.sessionId + " " + player.y);
       }
     );
 
     this.onMessage(
       "spectatorCubePosition",
       (client, position: SpectatorCubePositionMessage) => {
-        const spectator = this.state.spectators.get(client.sessionId);
+        const spectator = this.state.participants.get(client.sessionId);
         spectator.x = position.x;
         spectator.y = position.y;
-        console.log({ position });
+        console.log(client.sessionId + " " + position.x + " " + position.y);
       }
     );
   }
@@ -66,17 +66,27 @@ export class GameRoom extends Room {
     if (typeof options?.userId != "string") return client.leave();
 
     console.log(
-      `User ${options.userId} joined to room with instance id: ${this.roomId}`
+      `User ${options.userId} joined to room with room id: ${this.roomId}`
     );
     client.send("welcomeMessage", "Welcome!");
 
-    //\ Set user id to player
-    const player = new Player();
-    player.userId = options.userId;
+    let participant: Participant = new Participant();
+    const state = this.state as GameState;
+
+    if (state.participants.size <= 2) {
+      console.log("Creating player");
+      participant = new Player();
+    }
+
+    if (!participant) return client.leave();
+
+    participant.userId = options.userId;
 
     //\ Save player to state (for other clients to receive it)
-    const state = this.state as GameState;
-    state.participants.set(client.sessionId, player);
+    state.participants.set(client.sessionId, participant);
+    console.log(
+      `Participant ${client.sessionId} added to room state with room id: ${this.roomId}`
+    );
   }
 
   override async onLeave(
