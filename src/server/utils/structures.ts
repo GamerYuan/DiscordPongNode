@@ -29,4 +29,12 @@ export class Spectator extends Participant {
 export class GameState extends Schema {
   @type({ map: Participant })
   participants = new MapSchema<Participant>();
+
+  createPlayer(sessionId: string) {
+    this.participants.set(sessionId, new Player());
+  }
+
+  removePlayer(sessionId: string) {
+    this.participants.delete(sessionId);
+  }
 }

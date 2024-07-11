@@ -8,7 +8,7 @@ export class GameEngine {
 
   players: Map<string, Matter.Body> = new Map();
 
-  readonly playerSpeed: number = 0.1;
+  readonly playerStep: number = 0.1;
 
   constructor(state: GameState) {
     this.state = state;
@@ -19,14 +19,26 @@ export class GameEngine {
   }
 
   init() {
-    const topWall = Bodies.rectangle(0, 5, 1, 1, { isStatic: true });
-    const bottomWall = Bodies.rectangle(0, -5, 1, 1, { isStatic: true });
+    const topWall = Bodies.rectangle(0, 5, 1, 1, {
+      isStatic: true,
+      isSensor: true,
+    });
+    const bottomWall = Bodies.rectangle(0, -5, 1, 1, {
+      isStatic: true,
+      isSensor: true,
+    });
 
     Matter.Body.scale(topWall, 25, 0.25);
     Matter.Body.scale(bottomWall, 25, 0.25);
 
-    const leftDeadZone = Bodies.rectangle(-10, 0, 1, 1, { isStatic: true });
-    const rightDeadZone = Bodies.rectangle(10, 0, 1, 1, { isStatic: true });
+    const leftDeadZone = Bodies.rectangle(-10, 0, 1, 1, {
+      isStatic: true,
+      isSensor: true,
+    });
+    const rightDeadZone = Bodies.rectangle(10, 0, 1, 1, {
+      isStatic: true,
+      isSensor: true,
+    });
 
     Matter.Body.scale(leftDeadZone, 1, 10);
     Matter.Body.scale(rightDeadZone, 1, 10);
@@ -39,31 +51,32 @@ export class GameEngine {
     ]);
 
     this.initUpdateEvents();
-    this.initCollisionEvents();
   }
 
   initUpdateEvents() {
-    Matter.Events.on(this.engine, "afterUpdate", () => {
-      for (const key in this.players) {
-        if (this.state.participants.get(key) || this.players.get(key)) {
-          (this.state.participants.get(key) as Player).y =
-            this.players.get(key)!.position.y;
-        }
-      }
-    });
-  }
+    const detector = Matter.Detector.create({ bodies: this.world.bodies });
+    console.log(detector.bodies);
 
-  initCollisionEvents() {
-    Matter.Events.on(this.engine, "collisionStart", (event) => {
-      console.log("collisionStart", event);
-      const pairs = event.pairs;
+    Matter.Events.on(this.engine, "afterUpdate", () => {
+      this.players.forEach((player, key) => {
+        if (!this.state.participants.get(key) || !player) return;
+
+        (this.state.participants.get(key) as Player).y = player.position.y;
+      });
+
+      const collision = Matter.Detector.collisions(detector);
+      if (collision.length > 0) {
+        console.log("Collision detected", collision);
+        console.log(collision[0].bodyA.position);
+      }
     });
   }
 
   addPlayer(sessionId: string, playerNumber: number) {
     const startX = playerNumber === 0 ? -7 : 7;
     const player = Bodies.rectangle(startX, 0, 1, 1, {
-      label: `player${playerNumber}`,
+      isStatic: false,
+      isSensor: true,
     });
     Matter.Body.scale(player, 0.35, 2);
 
@@ -71,7 +84,7 @@ export class GameEngine {
 
     Matter.Composite.add(this.world, [player]);
 
-    // state create
+    this.state.createPlayer(sessionId);
   }
 
   removePlayer(sessionId: string) {
@@ -79,6 +92,7 @@ export class GameEngine {
     if (player) {
       Matter.Composite.remove(this.world, player);
       this.players.delete(sessionId);
+      this.state.removePlayer(sessionId);
     }
   }
 
@@ -87,6 +101,9 @@ export class GameEngine {
     const player = this.players.get(sessionId);
     if (!player) return;
 
-    Matter.Body.setVelocity(player, { x: 0, y: direction * this.playerSpeed });
+    Matter.Body.setPosition(player, {
+      x: player.position.x,
+      y: player.position.y + direction * this.playerStep,
+    });
   }
 }
