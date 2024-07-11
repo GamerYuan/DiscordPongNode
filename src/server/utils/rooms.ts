@@ -23,7 +23,7 @@ export class GameRoom extends Room {
         
         //? Check validity
         if (typeof options.instanceId != "string") return this.disconnect();
-        console.log(`Room with instance id ${options.instanceId} created`)
+        console.log(`Room with room id ${this.roomId} created`)
 
         roomsMap.set(options.instanceId, true);
 
@@ -48,7 +48,7 @@ export class GameRoom extends Room {
         //? Check validity
         if (typeof options?.userId != "string") return client.leave();
 
-        console.log(`Client joined to room with instance id: ${this.roomId}`);
+        console.log(`User ${options.userId} joined to room with instance id: ${this.roomId}`);
         client.send("welcomeMessage", "Welcome!");
 
         //\ Set user id to player
