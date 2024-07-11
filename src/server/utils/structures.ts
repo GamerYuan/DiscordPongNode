@@ -6,22 +6,27 @@
 
 import { Schema, type, MapSchema } from "@colyseus/schema";
 
+export class Participant extends Schema {
+  @type("string")
+  userId: string = "";
+}
+
 // Example player schema, you could add more properties, a constructor...
-export class Player extends Schema {
+export class Player extends Participant {
+  @type("number")
+  y: number = 0.0;
+}
 
-    @type("boolean")
-    connected: boolean = true;
+export class Spectator extends Participant {
+  @type("number")
+  x: number = 0.0;
 
-    @type("string")
-    userId: string = "";
-
-    @type("number")
-    y: number = 0.0;
+  @type("number")
+  y: number = 0.0;
 }
 
 // Example game state
 export class GameState extends Schema {
-
-    @type({ map: Player })
-    players = new MapSchema<Player>();
+  @type({ map: Participant })
+  participants = new MapSchema<Participant>();
 }

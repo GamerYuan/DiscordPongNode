@@ -9,7 +9,7 @@ import express from "express";
 import { Server } from "colyseus";
 import { createServer } from "http";
 import { WebSocketTransport } from "@colyseus/ws-transport";
-import { GameRoom } from "./utils/rooms";
+import { GameRoom } from "./utils/rooms/GameRoom";
 
 
 //\ Prepare express server
