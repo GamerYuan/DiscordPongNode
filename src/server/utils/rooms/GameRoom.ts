@@ -40,7 +40,7 @@ export class GameRoom extends Room {
 
     // You can set up your listeners here
     this.onMessage("playerPosition", (client, direction: number) => {
-      this.engine?.processPlayerInput(client.sessionId, direction);
+      this.engine?.processPlayerInput(client.sessionId, direction * -1);
       console.log(client.sessionId + " " + direction);
     });
 
