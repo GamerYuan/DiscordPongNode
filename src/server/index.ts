@@ -1,6 +1,5 @@
-
 import { config } from "dotenv";
-  config();
+config();
 import path from "path";
 import fetch from "cross-fetch";
 import express from "express";
@@ -11,36 +10,44 @@ import { createServer } from "http";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { GameRoom } from "./utils/rooms/GameRoom";
 
-
 //\ Prepare express server
 const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "../client"), {
-  setHeaders: (res, path) => {
+app.use(
+  express.static(path.join(__dirname, "../client"), {
+    setHeaders: (res, path) => {
+      if (path.endsWith(".gz")) {
+        res.appendHeader("Content-Encoding", "gzip");
+      }
 
-    if (path.endsWith(".gz")) {
-      res.appendHeader("Content-Encoding", "gzip");
-    }
+      if (path.endsWith(".br")) {
+        res.appendHeader("Content-Encoding", "br");
+      }
 
-    if (path.endsWith(".br")) {
-      res.appendHeader("Content-Encoding", "br");
-    }
+      if (
+        path.endsWith(".wasm.gz") ||
+        path.endsWith(".wasm.br") ||
+        path.endsWith(".wasm")
+      ) {
+        res.appendHeader("Content-Type", "application/wasm");
+      }
 
-    if (path.endsWith(".wasm.gz") || path.endsWith(".wasm.br") || path.endsWith(".wasm")) {
-      res.appendHeader("Content-Type", "application/wasm");
-    }
+      if (
+        path.endsWith(".js.gz") ||
+        path.endsWith(".js.br") ||
+        path.endsWith(".js")
+      ) {
+        res.appendHeader("Content-Type", "application/javascript");
+      }
 
-    if (path.endsWith(".js.gz") || path.endsWith(".js.br") || path.endsWith(".js")) {
-      res.appendHeader("Content-Type", "application/javascript");
-    }
-
-    if (path.endsWith(".data") || path.endsWith(".mem")) {
-      res.appendHeader('Content-Type', 'application/octet-stream');
-    }
-  }
-}));
+      if (path.endsWith(".data") || path.endsWith(".mem")) {
+        res.appendHeader("Content-Type", "application/octet-stream");
+      }
+    },
+  })
+);
 
 //# HTTP ROUTES - - - - -
 /**
@@ -48,10 +55,9 @@ app.use(express.static(path.join(__dirname, "../client"), {
  */
 //\ Fetch token from developer portal and return to the embedded app
 app.post("/api/token", async (req, res) => {
-
   //? No code
   if (!req.body.code) return res.status(400);
-  
+
   //\ Fetch token from dev portal
   const response = await fetch(`https://discord.com/api/oauth2/token`, {
     method: "POST",
@@ -63,27 +69,27 @@ app.post("/api/token", async (req, res) => {
       client_secret: process.env.CLIENT_SECRET!,
       grant_type: "authorization_code",
       code: req.body.code,
-    })
+    }),
   });
 
-  const {access_token} = await response.json();
+  const { access_token } = await response.json();
 
-  res.send({access_token});
+  res.send({ access_token });
   return;
 });
 
 //? Colyseus server
 if (process.env.COLYSEUS!.toLowerCase() == "true") {
-
   const colyseusServer = new Server({
     transport: new WebSocketTransport({
-      server: createServer(app)
-    })
+      server: createServer(app),
+    }),
   });
-    
-  colyseusServer.define("game", GameRoom)
-  .filterBy(["instanceId", "userId"]);
-  
+
+  colyseusServer
+    .define("game", GameRoom)
+    .filterBy(["instanceId", "userId", "username"]);
+
   //\ Listen to port
   colyseusServer.listen(Number(process.env.PORT!));
 }

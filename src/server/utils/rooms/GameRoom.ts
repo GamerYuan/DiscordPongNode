@@ -4,7 +4,7 @@
  */
 
 import { Room } from "colyseus";
-import { GameState, Participant, Player } from "../structures";
+import { Ball, GameState, Participant, Player } from "../structures";
 
 import type { Client } from "colyseus";
 import type { ExpectedCreateOptions, ExpectedJoinOptions } from "../types";
@@ -41,18 +41,17 @@ export class GameRoom extends Room {
     // You can set up your listeners here
     this.onMessage("playerPosition", (client, direction: number) => {
       this.engine?.processPlayerInput(client.sessionId, direction * -1);
-      console.log(client.sessionId + " " + direction);
     });
 
-    this.onMessage(
-      "spectatorCubePosition",
-      (client, position: SpectatorCubePositionMessage) => {
-        const spectator = this.state.participants.get(client.sessionId);
-        spectator.x = position.x;
-        spectator.y = position.y;
-        console.log(client.sessionId + " " + position.x + " " + position.y);
-      }
-    );
+    // this.onMessage(
+    //   "spectatorCubePosition",
+    //   (client, position: SpectatorCubePositionMessage) => {
+    //     const spectator = this.state.participants.get(client.sessionId);
+    //     spectator.x = position.x;
+    //     spectator.y = position.y;
+    //     console.log(client.sessionId + " " + position.x + " " + position.y);
+    //   }
+    // );
 
     this.setSimulationInterval((deltaTime) => this.update(deltaTime));
   }
@@ -62,7 +61,11 @@ export class GameRoom extends Room {
     options?: ExpectedJoinOptions
   ): void | Promise<any> {
     //? Check validity
-    if (typeof options?.userId != "string") return client.leave();
+    if (
+      typeof options?.userId != "string" ||
+      typeof options?.username != "string"
+    )
+      return client.leave();
 
     console.log(
       `User ${options.userId} joined to room with room id: ${this.roomId}`
@@ -71,9 +74,16 @@ export class GameRoom extends Room {
 
     const state = this.state as GameState;
 
+    state.usernames.set(client.sessionId, options.username);
+
     if (state.participants.size <= 2) {
       console.log("Creating player");
       this.engine?.addPlayer(client.sessionId, state.participants.size);
+    }
+
+    if (state.participants.size >= 2) {
+      console.log("Spawning ball");
+      this.engine?.spawnBall();
     }
 
     //\ Save player to state (for other clients to receive it)
@@ -92,6 +102,7 @@ export class GameRoom extends Room {
 
     // Client will be removed
     state.participants.delete(client.sessionId);
+    state.usernames.delete(client.sessionId);
   }
 
   override onDispose(): void | Promise<any> {

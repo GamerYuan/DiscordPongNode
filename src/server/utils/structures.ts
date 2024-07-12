@@ -25,16 +25,41 @@ export class Spectator extends Participant {
   y: number = 0.0;
 }
 
+export class Ball extends Schema {
+  @type("number")
+  x: number = 0.0;
+
+  @type("number")
+  y: number = 0.0;
+
+  @type("string")
+  lastHitBy: string = "";
+}
+
 // Example game state
 export class GameState extends Schema {
   @type({ map: Participant })
   participants = new MapSchema<Participant>();
 
+  @type(Ball)
+  ball = new Ball();
+
+  @type({ map: "int32" })
+  scoreboard = new MapSchema<number>();
+
+  @type({ map: "string" })
+  usernames = new MapSchema<string>();
+
   createPlayer(sessionId: string) {
     this.participants.set(sessionId, new Player());
+    this.scoreboard.set(sessionId, 0);
   }
 
   removePlayer(sessionId: string) {
     this.participants.delete(sessionId);
+  }
+
+  addScore(sessionId: string) {
+    this.scoreboard.set(sessionId, (this.scoreboard.get(sessionId) || 0) + 1);
   }
 }
