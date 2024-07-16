@@ -8,8 +8,10 @@ export class GameEngine {
 
   players: Map<string, Matter.Body> = new Map();
   playerSession: Map<string, string> = new Map();
+
   ball: Matter.Body | null = null;
-  isNewBall: boolean = true;
+  newBallTimer: number = 2.0;
+
   deadzoneDetector: Matter.Detector = Matter.Detector.create();
   playerDetector: Matter.Detector = Matter.Detector.create();
 
@@ -163,8 +165,16 @@ export class GameEngine {
     this.state.ball.x = this.ball!.position.x;
     this.state.ball.y = this.ball!.position.y;
 
-    if (this.isNewBall) {
-      this.isNewBall = false;
+    if (this.state.ball.isNewBall) {
+      Matter.Body.setVelocity(this.ball!, { x: 0, y: 0 });
+      Matter.Body.setPosition(this.ball!, { x: 0, y: 0 });
+      this.newBallTimer -= this.engine.timing.lastDelta / 1000;
+      if (this.newBallTimer > 0) {
+        return;
+      }
+
+      this.newBallTimer = 2.0;
+      this.state.ball.isNewBall = false;
 
       const randomDirectionX = Math.random() > 0.5 ? 1 : -1;
       const randomDirectionY = Math.random() > 0.5 ? 1 : -1;
@@ -173,8 +183,8 @@ export class GameEngine {
         this.ball!,
         Matter.Vector.mult(
           Matter.Vector.normalise({
-            x: Math.random() * randomDirectionX,
-            y: Math.random() * randomDirectionY,
+            x: Math.max(Math.random() * randomDirectionX, 0.15),
+            y: Math.min(Math.random() * randomDirectionY, 0.75),
           }),
           this.maxBallSpeed
         )
@@ -194,7 +204,7 @@ export class GameEngine {
   handleBallCollisions() {
     const deadzoneCollision = Matter.Detector.collisions(this.deadzoneDetector);
     if (deadzoneCollision.length > 0) {
-      this.isNewBall = true;
+      this.state.ball.isNewBall = true;
 
       if (
         deadzoneCollision[0].bodyA.label === "leftDeadZone" ||
@@ -205,7 +215,6 @@ export class GameEngine {
           session!,
           (this.state.scoreboard.get(session!) ?? 0) + 1
         );
-        console.log(this.state.scoreboard.get(session!));
       }
 
       if (
@@ -217,7 +226,6 @@ export class GameEngine {
           session!,
           (this.state.scoreboard.get(session!) ?? 0) + 1
         );
-        console.log(this.state.scoreboard.get(session!));
       }
 
       Matter.Body.setPosition(this.ball!, {

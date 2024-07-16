@@ -32,6 +32,9 @@ export class Ball extends Schema {
   @type("number")
   y: number = 0.0;
 
+  @type("boolean")
+  isNewBall: boolean = true;
+
   @type("string")
   lastHitBy: string = "";
 }
